@@ -28,7 +28,7 @@ def parseDocument(filename):
     mid_2_event_tag = {}
     tag_descriptor = {}
     tokens = {} #sentences in news article, Each elemnt is a list of tokens in that sentence
-
+    doc_name = root.attrib['doc_name']
     cur_mid = ''
     for action in root.find('Markables').iter():
         if action.tag == 'Markables':
@@ -68,7 +68,18 @@ def parseDocument(filename):
         for token_id in related_events[key][0]:
             tokens[token_id].set_relation_id((key,related_events[key][1]))
 
-    return tokens
+    sentence_no = '-1'
+    document = []
+    sentence = []
+    tokens = {int(key):value for key,value in tokens.items()}
+    for token_key in sorted(tokens):
+        if tokens[token_key].sentence_no == sentence_no:
+            sentence.append(tokens[token_key])
+        else:
+            document.append((sentence,doc_name))
+            sentence_no = tokens[token_key].sentence_no
+            sentence = [tokens[token_key]]
+    return tokens,document
 
 def print_document_tagged(tokens, filename):
     if not os.path.exists(os.path.dirname(filename)):
@@ -79,8 +90,7 @@ def print_document_tagged(tokens, filename):
                 raise
     file = open(filename, 'w')
     sentence_no = '-1'
-    tokens = {int(key):value for key,value in tokens.items()}
-    for token_key in sorted(tokens):
+    for token_key in (tokens):
         if tokens[token_key].sentence_no == sentence_no:
             try:
                 file.write('\t\t'+tokens[token_key].__str__())
@@ -108,8 +118,7 @@ def print_document_text(tokens, filename):
                 raise
     file = open(filename, 'w')
     sentence_no = '-1'
-    tokens = {int(key):value for key,value in tokens.items()}
-    for token_key in sorted(tokens):
+    for token_key in (tokens):
         if tokens[token_key].sentence_no == sentence_no:
             try:
                 file.write(' '+tokens[token_key].text)
@@ -128,20 +137,51 @@ def print_document_text(tokens, filename):
                     print "--------------UNICODE ERROR---------------------"
                     print tokens[token_key].text, " changed to ", tokens[token_key].text.encode('ascii','ignore')
 
+def write_rel_sentence(sentence):
+    text = ''
+    for token in sentence[0]:
+        text += token.text.encode('ascii','ignore')+' '
+    return text+sentence[1]+'\n'
+
+def print_all_files(all_files, filename):
+    file = open(filename, 'w')
+    doc_dict = {}
+    for document in all_files:
+        for sentence in document:
+            for token in sentence[0]:
+                try:
+                    if 'ACT' in token.relation_id[0]:
+                        try:
+                            doc_dict[token.relation_id].append(sentence)
+                            break
+                        except KeyError:
+                            doc_dict[token.relation_id] = [sentence]
+                            break
+                except TypeError:
+                    pass
+    for relation_id in doc_dict:
+        file.write("\n"+relation_id[0]+"  "+relation_id[1]+'\n')
+        for sentence in doc_dict[relation_id]:
+            file.write(write_rel_sentence(sentence))
+
 def parseFolder(foldername):
     for subdir, dirs, files in os.walk(foldername):
         if DEBUG:
             print subdir
         if subdir[-1].isdigit():
             #start from here to merge them
+            all_files = []
             for file in files:
                 if file.endswith('xml'):
                     filename = os.path.join(subdir, file)
-                    tokens = parseDocument(filename)
+                    tokens, document = parseDocument(filename)
+                    all_files.append(document)
                     outfilename = subdir+'/out_tagged/'+file[:-4]+'_tagged.txt'
                     print_document_tagged(tokens, outfilename)
                     outfilename = subdir+'/out_text/'+file[:-4]+'_tagged.txt'
                     print_document_text(tokens, outfilename)
+            outfilename = subdir+'/'+subdir[-1]+'_all_files.txt'
+            print_all_files(all_files, outfilename)
 
 if __name__ == "__main__":
     args = sys.argv
