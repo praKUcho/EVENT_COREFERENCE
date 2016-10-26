@@ -153,7 +153,8 @@ def print_all_files(all_files, filename):
                 if token.relation_id:
                     if 'ACT' in token.relation_id[0]:
                         try:
-                            doc_dict[token.relation_id].append(sentence)
+                            if sentence not in doc_dict[token.relation_id]:
+                                doc_dict[token.relation_id].append(sentence)
                         except KeyError:
                             doc_dict[token.relation_id] = [sentence]
     for relation_id in doc_dict:
