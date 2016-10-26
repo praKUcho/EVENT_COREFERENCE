@@ -79,6 +79,7 @@ def parseDocument(filename):
             document.append((sentence,doc_name))
             sentence_no = tokens[token_key].sentence_no
             sentence = [tokens[token_key]]
+    document.append((sentence,doc_name))
     return tokens,document
 
 def print_document_tagged(tokens, filename):
