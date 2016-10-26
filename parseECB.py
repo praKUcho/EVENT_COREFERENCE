@@ -150,16 +150,12 @@ def print_all_files(all_files, filename):
     for document in all_files:
         for sentence in document:
             for token in sentence[0]:
-                try:
+                if token.relation_id:
                     if 'ACT' in token.relation_id[0]:
                         try:
                             doc_dict[token.relation_id].append(sentence)
-                            break
                         except KeyError:
                             doc_dict[token.relation_id] = [sentence]
-                            break
-                except TypeError:
-                    pass
     for relation_id in doc_dict:
         file.write("\n"+relation_id[0]+"  "+relation_id[1]+'\n')
         for sentence in doc_dict[relation_id]:
